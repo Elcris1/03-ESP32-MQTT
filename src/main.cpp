@@ -53,18 +53,11 @@ enum class Orientation
   UP,
   DOWN,
   LEFT,
-  RIGHT,
-  UNKNOWN
+  RIGHT
 };
 
 Orientation classifyOrientation(float x, float y)
 {
-  constexpr float MIN_TILT = 6.0f; // m/s²; ignore small deviations
-
-  if (fabsf(x) < MIN_TILT && fabsf(y) < MIN_TILT)
-  {
-    return Orientation::UNKNOWN;
-  }
 
   if (fabsf(x) > fabsf(y))
   {
