@@ -5,8 +5,6 @@ services:
     restart: unless-stopped
     ports:
       - "1883:1883"    # MQTT estándar
-      - "9001:9001"    # WebSockets
-      - "8883:8883"    # MQTTS (seguro)
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
