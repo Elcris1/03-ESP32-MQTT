@@ -39,6 +39,7 @@ Adafruit_ADXL345_Unified accelerometer = Adafruit_ADXL345_Unified(12345);
 
 QueueHandle_t queue;
 
+// Function definition
 void mqttTask(void *parameter);
 void sensorTask(void *parameter);
 
@@ -46,6 +47,7 @@ void connectWifi();
 void connectMQTT();
 bool configureAccelerometer();
 
+// Support data structures and classes
 enum class Orientation
 {
   UP,
@@ -110,9 +112,6 @@ void setup()
   {
     delay(1000);
   }
-  
-  accelerometer.setRange(ADXL345_RANGE_2_G);
-  Serial.println("ADXL345 ready");
 
   queue = xQueueCreate(10, sizeof(SensorData));
   if (queue == nullptr)
@@ -139,6 +138,9 @@ void loop()
   vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
+/**
+ * Task whose purpouse is to publish mqtt information and keep the connection alive
+ */
 void mqttTask(void *parameter)
 {
 
@@ -158,8 +160,10 @@ void mqttTask(void *parameter)
       connectMQTT();
     }
 
+    // Mantaining MQTT connection open
     mqttClient.loop();
 
+    // if sensor data has been received
     if (xQueueReceive(queue, &current, pdMS_TO_TICKS(SAMPLE_PERIOD)) == pdTRUE)
     {
       if (hasPrev && prev.orientation != current.orientation)
@@ -185,6 +189,9 @@ void mqttTask(void *parameter)
   }
 }
 
+/**
+ * Blocking method to reconnect to wifi 
+ */
 void connectWifi()
 {
   Serial.print("Connecting to Wi-Fi");
@@ -208,6 +215,9 @@ void connectWifi()
   Serial.println(WiFi.localIP());
 }
 
+/**
+ * Blocking method to connect to the mqtt broker, it solves wifi connection as well
+ */
 void connectMQTT()
 {
 
@@ -244,6 +254,9 @@ void connectMQTT()
   }
 }
 
+/**
+ * Task that reads the AXL345 information
+ */
 void sensorTask(void *parameter)
 {
 
@@ -251,6 +264,7 @@ void sensorTask(void *parameter)
 
   for (;;)
   {
+    // Reading event verification callback;
     sensors_event_t event;
     if (!accelerometer.getEvent(&event)) {
       Serial.println("Failed to read ADXL345");
@@ -276,6 +290,9 @@ void sensorTask(void *parameter)
   }
 }
 
+/**
+ * Setting up connection to the accelerometer
+ */
 bool configureAccelerometer() {
   if (!accelerometer.begin()){
     Serial.println("ADXL345 not found");
