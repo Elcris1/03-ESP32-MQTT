@@ -4,8 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 
-platformio.ini
-
 mosquitto/data/*
 !mosquitto/data/.gitkeep
 mosquitto/log/*
