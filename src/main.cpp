@@ -24,16 +24,12 @@ constexpr const int MQTT_PORT = 1883;
 constexpr const char *MQTT_USER = "";
 constexpr const char *MQTT_PASSWORD = "";
 #elif defined(ENV_REAL)
-// WiFi constants
-constexpr const char *WIFI_SSID = "ssid";
-constexpr const char *WIFI_PASSWORD = "pssd";
+#include "secrets.h"
+// Read README.md on how to update the real connection information
 constexpr const int WIFI_CHANNEL = 0;
 
-// MQTT constants
 constexpr const char *MQTT_SERVER = "192.168.0.30";
 constexpr const int MQTT_PORT = 1883;
-constexpr const char *MQTT_USER = "";
-constexpr const char *MQTT_PASSWORD = "";
 #endif
 
 WiFiClient wifiClient;
@@ -48,6 +44,7 @@ void sensorTask(void *parameter);
 
 void connectWifi();
 void connectMQTT();
+bool configureAccelerometer();
 
 enum class Orientation
 {
@@ -109,14 +106,11 @@ void setup()
   // I²C del ESP32: SDA = GPIO 21, SCL = GPIO 22
   Wire.begin(21, 22);
 
-  if (!accelerometer.begin())
+  while (!configureAccelerometer())
   {
-    Serial.println("ADXL345 was not found. Trying again...");
-    while (true)
-    {
-      delay(1000);
-    }
+    delay(1000);
   }
+  
   accelerometer.setRange(ADXL345_RANGE_2_G);
   Serial.println("ADXL345 ready");
 
@@ -241,6 +235,10 @@ void connectMQTT()
     {
       Serial.print("Connection failed: ");
       Serial.println(mqttClient.state());
+      if(WiFi.status() != WL_CONNECTED)
+      {
+        connectWifi();
+      }
       vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY));
     }
   }
@@ -254,7 +252,12 @@ void sensorTask(void *parameter)
   for (;;)
   {
     sensors_event_t event;
-    accelerometer.getEvent(&event);
+    if (!accelerometer.getEvent(&event)) {
+      Serial.println("Failed to read ADXL345");
+      configureAccelerometer();
+      vTaskDelayUntil(&lastWakeTime,  pdMS_TO_TICKS(SAMPLE_PERIOD));
+      continue;
+    }
 
     Orientation orientation = classifyOrientation(
         event.acceleration.x,
@@ -269,6 +272,17 @@ void sensorTask(void *parameter)
     xQueueSend(queue, &data, pdMS_TO_TICKS(SAMPLE_PERIOD));
 
     // Wait untill next sample
-    vTaskDelayUntil(&lastWakeTime, SAMPLE_PERIOD);
+    vTaskDelayUntil(&lastWakeTime,  pdMS_TO_TICKS(SAMPLE_PERIOD));
   }
+}
+
+bool configureAccelerometer() {
+  if (!accelerometer.begin()){
+    Serial.println("ADXL345 not found");
+    return false;
+  }
+
+  accelerometer.setRange(ADXL345_RANGE_2_G);
+  Serial.println("ADXL345 ready");
+  return true;
 }
